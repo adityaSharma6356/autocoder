@@ -1,0 +1,89 @@
+#include <iostream>
+#include <cuda_runtime.h>
+
+#define N 1024  // Size of the matrix
+
+__global__ void matrixMulCUDA(float* C, float* A, float* B, int n) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    float value = 0;
+    if (row < n && col < n) {
+        for (int k = 0; k < n; ++k) {
+            value += A[row * n + k] * B[k * n + col];
+        }
+        C[row * n + col] = value;
+    }
+}
+
+void initializeMatrix(float* matrix, int size) {
+    for (int i = 0; i < size; ++i) {
+        matrix[i] = static_cast<float>(rand()) / RAND_MAX;
+    }
+}
+
+void allocateAndCopyToDevice(float*& d_matrix, float* h_matrix, int size) {
+    cudaMalloc((void**)&d_matrix, size);
+    cudaMemcpy(d_matrix, h_matrix, size, cudaMemcpyHostToDevice);
+}
+
+void copyFromDeviceAndFree(float* h_matrix, float* d_matrix, int size) {
+    cudaMemcpy(h_matrix, d_matrix, size, cudaMemcpyDeviceToHost);
+    cudaFree(d_matrix);
+}
+
+bool verifyResult(float* C, float* A, float* B, int n) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            float sum = 0;
+            for (int k = 0; k < n; ++k) {
+                sum += A[i * n + k] * B[k * n + j];
+            }
+            if (abs(C[i * n + j] - sum) > 1e-5) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int main() {
+    int size = N * N * sizeof(float);
+    float *h_A, *h_B, *h_C;
+    float *d_A, *d_B, *d_C;
+
+    h_A = (float*)malloc(size);
+    h_B = (float*)malloc(size);
+    h_C = (float*)malloc(size);
+
+    initializeMatrix(h_A, N * N);
+    initializeMatrix(h_B, N * N);
+
+    allocateAndCopyToDevice(d_A, h_A, size);
+    allocateAndCopyToDevice(d_B, h_B, size);
+
+    dim3 dimBlock(16, 16);
+    dim3 dimGrid((N + dimBlock.x - 1) / dimBlock.x, (N + dimBlock.y - 1) / dimBlock.y);
+
+    matrixMulCUDA<<<dimGrid, dimBlock>>>(d_C, d_A, d_B, N);
+
+    float* h_result = (float*)malloc(size);
+    copyFromDeviceAndFree(h_result, d_C, size);
+
+
+    bool success = verifyResult(h_result, h_A, h_B, N);
+
+    if (success) {
+        std::cout << "Matrix multiplication successful!" << std::endl;
+    } else {
+        std::cout << "Matrix multiplication failed!" << std::endl;
+    }
+
+
+    free(h_A);
+    free(h_B);
+    free(h_C);
+    free(h_result);
+
+    return 0;
+}

@@ -1,0 +1,101 @@
+import Control.Monad
+import Data.Map (Map)
+import qualified Data.Map as Map
+
+-- Abstract Syntax Tree
+data Expr
+    = Var String
+    | Num Int
+    | Add Expr Expr
+    | Sub Expr Expr
+    | Mul Expr Expr
+    | Div Expr Expr
+    | If Expr Expr Expr
+    | Let String Expr Expr
+    | Lam String Expr
+    | App Expr Expr
+    deriving (Show)
+
+-- Values
+data Value
+    = IntVal Int
+    | FunVal Env String Expr
+    deriving (Show)
+
+type Env = Map String Value
+
+-- Evaluation
+eval :: Env -> Expr -> Either String Value
+eval env expr = case expr of
+    Var x -> case Map.lookup x env of
+        Just v  -> Right v
+        Nothing -> Left ("Unbound variable: " ++ x)
+    Num n -> Right (IntVal n)
+    Add e1 e2 -> do
+        IntVal v1 <- eval env e1
+        IntVal v2 <- eval env e2
+        return $ IntVal (v1 + v2)
+    Sub e1 e2 -> do
+        IntVal v1 <- eval env e1
+        IntVal v2 <- eval env e2
+        return $ IntVal (v1 - v2)
+    Mul e1 e2 -> do
+        IntVal v1 <- eval env e1
+        IntVal v2 <- eval env e2
+        return $ IntVal (v1 * v2)
+    Div e1 e2 -> do
+        IntVal v1 <- eval env e1
+        IntVal v2 <- eval env e2
+        if v2 == 0
+            then Left "Division by zero"
+            else return $ IntVal (v1 `div` v2)
+    If cond e1 e2 -> do
+        IntVal c <- eval env cond
+        if c /= 0 then eval env e1 else eval env e2
+    Let x e1 e2 -> do
+        v1 <- eval env e1
+        eval (Map.insert x v1 env) e2
+    Lam x body -> Right $ FunVal env x body
+    App e1 e2 -> do
+        FunVal closureEnv x body <- eval env e1
+        arg <- eval env e2
+        eval (Map.insert x arg closureEnv) body
+
+-- Parser (simple, not robust, only for demonstration)
+parseExpr :: String -> Either String Expr
+parseExpr input = case words input of
+    ["if", cond, "then", e1, "else", e2] -> do
+        cond' <- parseExpr cond
+        e1' <- parseExpr e1
+        e2' <- parseExpr e2
+        return $ If cond' e1' e2'
+    ["let", x, "=", e1, "in", e2] -> do
+        e1' <- parseExpr e1
+        e2' <- parseExpr e2
+        return $ Let x e1' e2'
+    [x, "+", y] -> liftM2 Add (parseExpr x) (parseExpr y)
+    [x, "-", y] -> liftM2 Sub (parseExpr x) (parseExpr y)
+    [x, "*", y] -> liftM2 Mul (parseExpr x) (parseExpr y)
+    [x, "/", y] -> liftM2 Div (parseExpr x) (parseExpr y)
+    [x] -> return $ Var x
+    _ -> Left "Parse error"
+
+-- REPL
+repl :: Env -> IO ()
+repl env = do
+    putStr "tiny-lang> "
+    line <- getLine
+    unless (line == ":quit") $ do
+        case parseExpr line of
+            Left err -> putStrLn ("Parse error: " ++ err)
+            Right expr -> case eval env expr of
+                Left err -> putStrLn ("Evaluation error: " ++ err)
+                Right val -> print val
+        repl env
+
+-- Main
+main :: IO ()
+main = do
+    putStrLn "Welcome to the tiny functional language interpreter!"
+    putStrLn "Type :quit to exit."
+    repl Map.empty

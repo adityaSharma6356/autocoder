@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ide</title>
+    <link rel="stylesheet" href="style.scss">
+</head>
+<style>
+    *{
+        margin: 0;
+        padding: 0;
+        background-color: black;
+    }
+    .main{
+        font-size: 15px;
+        color: chartreuse;
+        font-family: 'Courier New', Courier, monospace;
+        white-space: pre-wrap;
+    }
+    .selector{
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        display: flex;
+        height: 40px;
+        width: 200px;
+    }
+    .lang{
+        height: 100%;
+        border: 2px solid chartreuse;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: chartreuse;
+        font-family: 'Courier New', Courier, monospace;
+        white-space: pre-wrap;
+        
+    }
+
+    .coding{
+        background-color: chartreuse;
+        color: orange;
+    }
+</style>
+<body>
+    <h1 class="code main"></h1>
+    <!-- <div class="selector">
+        <div class="lang has" onclick="selectHaskel()">
+            <h2>HASKEL</h2>
+        </div>
+        <div class="lang cuda" onclick="selectCuda()">
+            <h2>CUDA</h2>
+        </div>
+    </div> -->
+
+    <script>
+        let code = ""
+        let temp = ""
+        let selected = "haskel_code.txt"
+        let currentIndex = 0
+
+        const click = document.querySelector('body');
+        const output = document.querySelector('.code')
+        const haskel = document.querySelector('.has')
+        const cuda = document.querySelector('.cuda')
+        
+
+        function selectLang(lang){
+            fetch(selected)
+            .then(response => response.text())
+            .then(data => {
+                code = data
+                console.log(code)
+            })
+            .catch(error => {
+                console.error('Error fetching the text file:', error);
+            });
+            currentIndex=0
+            temp=""
+            output.textContent=""
+        }
+
+        click.addEventListener('keydown', (event) => {
+            console.log("click")
+            temp += code[currentIndex]
+            output.textContent=temp
+            currentIndex++
+        });
+
+        function selectHaskel(){
+            selectLang("haskel_code.txt")
+            haskel.classList.add("coding")
+            cuda.classList.remove("coding")
+        }
+
+        function selectCuda(){
+            selectLang("cuda_code.txt")
+            cuda.classList.add("coding")
+            haskel.classList.remove("coding")
+        }
+
+        selectHaskel()
+    </script>
+</body>
+</html>
