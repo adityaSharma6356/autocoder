@@ -11,6 +11,7 @@
         margin: 0;
         padding: 0;
         background-color: black;
+        font-family: 'Courier New', Courier, monospace;
     }
     .main{
         font-size: 15px;
@@ -33,7 +34,6 @@
         align-items: center;
         justify-content: center;
         color: chartreuse;
-        font-family: 'Courier New', Courier, monospace;
         white-space: pre-wrap;
         
     }
@@ -43,23 +43,49 @@
         color: orange;
     }
     .hidden{
-        height: 99vh;
+        height: 70vh;
         width: 99vw;
         opacity: 0;
         position: absolute;
     }
+    .radio-group {
+            display: flex;
+            flex-direction: row;
+            position: fixed;
+            bottom: 0;
+            right: 0;
+        }
+    .radio-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100px;
+        height: 50px;
+        border: 2px solid green;
+        background-color: black;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    input[type="radio"] {
+        display: none;
+    }
+    input[type="radio"]:checked + label {
+        background-color: green;
+        color: white;
+    }
 </style>
 <body>
-    <input type="text" class="hidden">
     <h1 class="code main"></h1>
-    <!-- <div class="selector">
-        <div class="lang has" onclick="selectHaskel()">
-            <h2>HASKEL</h2>
-        </div>
-        <div class="lang cuda" onclick="selectCuda()">
-            <h2>CUDA</h2>
-        </div>
-    </div> -->
+    <input type="text" class="hidden">
+    <div class="radio-group">
+        <input type="radio" id="option1" name="options" value="1" onclick="selectHaskel()">
+        <label class="radio-button" for="option1">HASKEL</label>
+    
+        <input type="radio" id="option2" name="options" value="2" onclick="selectCuda()">
+        <label class="radio-button" for="option2">CUDA</label>
+    </div>
 
     <script>
         let code = ""
@@ -74,7 +100,7 @@
         
 
         function selectLang(lang){
-            fetch(selected)
+            fetch(lang)
             .then(response => response.text())
             .then(data => {
                 code = data
@@ -97,14 +123,10 @@
 
         function selectHaskel(){
             selectLang("haskel_code.txt")
-            haskel.classList.add("coding")
-            cuda.classList.remove("coding")
         }
 
         function selectCuda(){
             selectLang("cuda_code.txt")
-            cuda.classList.add("coding")
-            haskel.classList.remove("coding")
         }
 
         selectHaskel()
